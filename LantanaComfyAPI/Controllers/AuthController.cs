@@ -135,5 +135,44 @@ namespace LantanaComfyAPI.Controllers
 
             return token;
         }
+
+        //Route for adding roles to users
+        [HttpPost]
+        [Route("make-admin")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> MakeAdmin([FromBody] UpdatePermissionDto updatePermissionDto)
+        {
+            var user = await _userManager.FindByNameAsync(updatePermissionDto.UserName);
+
+            if(user is null)
+         
+                return BadRequest("Invalid User name!!!");
+            await _userManager.AddToRoleAsync(user, StaticUserRoles.ADMIN);
+
+            return Ok("User is now an Admin");
+            
+        }
+
+
+        //Route for making user owner
+        [HttpPost]
+        [Route("make-owner")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> MakeOwner([FromBody] UpdatePermissionDto updatePermissionDto)
+        {
+            var user = await _userManager.FindByNameAsync(updatePermissionDto.UserName);
+
+            if (user is null)
+
+                return BadRequest("Invalid User name!!!");
+            await _userManager.AddToRoleAsync(user, StaticUserRoles.OWNER);
+
+            return Ok("User is now an Owner");
+
+        }
     }
 }

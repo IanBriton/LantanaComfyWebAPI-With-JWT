@@ -35,8 +35,8 @@ namespace LantanaComfyAPI.Controllers
             return Ok(reservations);
         }
 
-        [HttpGet]
-        [Route("reservationId")]
+        [HttpGet("reservationId/{reservationId}")]
+        //[Route("reservationId")]
         [ProducesResponseType(200, Type = typeof(Reservation))]
         [ProducesResponseType(400)]
         [Authorize(Roles = StaticUserRoles.ADMIN)]
@@ -52,7 +52,7 @@ namespace LantanaComfyAPI.Controllers
         }
 
         [HttpPost]
-        [Route("reservation")]
+        //[Route("reservation")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [Authorize(Roles = StaticUserRoles.USER)]
