@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using LantanaComfyAPI.Dto;
+using LantanaComfyAPI.Dto.OtherObjects;
 using LantanaComfyAPI.Interfaces;
 using LantanaComfyAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +24,8 @@ namespace LantanaComfyAPI.Controllers
 
         [HttpGet]
         [ProducesResponseType(200, Type = typeof(IEnumerable<Table>))]
+        [Authorize(Roles = StaticUserRoles.ADMIN)]
+
         public IActionResult GetTables()
         {
             var tables = _tableRepository.GetTables();
@@ -30,9 +34,11 @@ namespace LantanaComfyAPI.Controllers
             return Ok(tables);
         }
 
-        [HttpGet("tableId")]
+        [HttpGet("tableId/{tableId}")]
         [ProducesResponseType(200, Type = typeof(Table))]
         [ProducesResponseType(400)]
+        [Authorize(Roles = StaticUserRoles.ADMIN)]
+
         public IActionResult GetTable(int tableId)
         {
             if (!_tableRepository.TableExists(tableId))
@@ -46,6 +52,8 @@ namespace LantanaComfyAPI.Controllers
         [HttpPost]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
+        [Authorize(Roles = StaticUserRoles.USER)]
+
         public IActionResult CreateTable([FromBody] TableDto? tableCreate)
         {
             if (tableCreate == null)
@@ -76,6 +84,8 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
+        [Authorize(Roles = StaticUserRoles.OWNER)]
+
         public IActionResult DeleteTable(int tableId)
         {
             if (!_tableRepository.TableExists(tableId))

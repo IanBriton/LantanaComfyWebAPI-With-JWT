@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using LantanaComfyAPI.Dto;
+using LantanaComfyAPI.Dto.OtherObjects;
 using LantanaComfyAPI.Interfaces;
 using LantanaComfyAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +25,8 @@ namespace LantanaComfyAPI.Controllers
 
         [HttpGet]
         [ProducesResponseType(200, Type = typeof(IEnumerable<Contact>))]
+        [Authorize(Roles = StaticUserRoles.ADMIN)]
+
         public IActionResult GetTables()
         {
             var tables = _contactRepository.GetContacts();
@@ -32,9 +36,11 @@ namespace LantanaComfyAPI.Controllers
             return Ok(tables);
         }
 
-        [HttpGet("tableId")]
+        [HttpGet("contactId/{contactId}")]
         [ProducesResponseType(200, Type = typeof(Contact))]
         [ProducesResponseType(400)]
+        [Authorize(Roles = StaticUserRoles.ADMIN)]
+
         public IActionResult GetContact(int contactId)
         {
             if (!_contactRepository.ContactExists(contactId))
@@ -48,6 +54,8 @@ namespace LantanaComfyAPI.Controllers
         [HttpPost]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
+        [Authorize(Roles = StaticUserRoles.USER)]
+
         public IActionResult CreateContact([FromBody] ContactDto? contactCreate)
         {
             if (contactCreate == null)
@@ -78,6 +86,8 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
+        [Authorize(Roles = StaticUserRoles.OWNER)]
+
         public IActionResult DeleteContact(int contactId)
         {
             if (!_contactRepository.ContactExists(contactId))
