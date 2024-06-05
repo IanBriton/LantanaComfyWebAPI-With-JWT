@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using LantanaComfyAPI.Dto;
+using LantanaComfyAPI.Dto.OtherObjects;
 using LantanaComfyAPI.Interfaces;
 using LantanaComfyAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LantanaComfyAPI.Controllers
@@ -20,7 +22,9 @@ namespace LantanaComfyAPI.Controllers
         }
 
         [HttpGet]
+        [Route("Get")]
         [ProducesResponseType(200, Type = typeof(IEnumerable<Reservation>))]
+        [Authorize(Roles = StaticUserRoles.ADMIN)]
 
         public IActionResult GetReservations()
         {
@@ -31,9 +35,12 @@ namespace LantanaComfyAPI.Controllers
             return Ok(reservations);
         }
 
-        [HttpGet("reservationId")]
+        [HttpGet]
+        [Route("reservationId")]
         [ProducesResponseType(200, Type = typeof(Reservation))]
         [ProducesResponseType(400)]
+        [Authorize(Roles = StaticUserRoles.ADMIN)]
+
         public IActionResult GetReservation(int reservationId)
         {
             if (!_reservationRepository.ReversationExists(reservationId))
@@ -45,8 +52,11 @@ namespace LantanaComfyAPI.Controllers
         }
 
         [HttpPost]
+        [Route("reservation")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
+        [Authorize(Roles = StaticUserRoles.USER)]
+
         public IActionResult CreateReservation([FromBody] ReservationDto? reservationCreate)
         {
             if (reservationCreate == null) 
@@ -77,6 +87,7 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
+        [Authorize(Roles = StaticUserRoles.OWNER)]
         public IActionResult DeleteReservation(int reservationId)
         {
             if (!_reservationRepository.ReversationExists(reservationId))
