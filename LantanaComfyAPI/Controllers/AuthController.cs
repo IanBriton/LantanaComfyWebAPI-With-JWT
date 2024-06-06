@@ -1,6 +1,8 @@
 ﻿using LantanaComfyAPI.Dto;
 using LantanaComfyAPI.Dto.OtherEntities;
 using LantanaComfyAPI.Dto.OtherObjects;
+using LantanaComfyAPI.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,16 +17,14 @@ namespace LantanaComfyAPI.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IConfiguration _configuration;
 
-        public AuthController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        private readonly IAuthService _authService;
+
+        public AuthController(IAuthService authService)
         {
-            _userManager = userManager;
-            _roleManager = roleManager;
-            _configuration = configuration;
+            _authService = authService;
         }
+
 
         //Route for seeding my roles to the database.
         [HttpPost]
@@ -34,19 +34,8 @@ namespace LantanaComfyAPI.Controllers
         [Route("seed-roles")]
         public async Task<IActionResult> SeedRoles()
         {
-            //Avoiding duplicate role creation
-            bool isOwnerExists = await _roleManager.RoleExistsAsync(StaticUserRoles.OWNER);
-            bool isAdminExists = await _roleManager.RoleExistsAsync(StaticUserRoles.ADMIN);
-            bool isUserExists = await _roleManager.RoleExistsAsync(StaticUserRoles.USER);
-
-            if (isUserExists && isOwnerExists && isAdminExists)
-                return Ok("Role Seeding already exists");
-
-            await _roleManager.CreateAsync(new IdentityRole(StaticUserRoles.USER));
-            await _roleManager.CreateAsync(new IdentityRole(StaticUserRoles.ADMIN));
-            await _roleManager.CreateAsync(new IdentityRole(StaticUserRoles.OWNER));
-
-            return Ok("Role seeding Done successfully");
+            var seedRoles = await _authService.SeedRolesAsync();
+            return Ok(seedRoles);
         }
 
         //Route for registering users
@@ -57,35 +46,11 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            var isExistsUser = await _userManager.FindByNameAsync(registerDto.UserName);
-            if (isExistsUser != null)
-                return BadRequest("User already exists");
+            var registerResults = await _authService.RegisterAsync(registerDto);
+            if (registerResults.IsSucceeded)
+                return Ok(registerResults);
 
-            ApplicationUser newUser = new ApplicationUser()
-            {
-                FirstName = registerDto.FirstName,
-                LastName = registerDto.LastName,
-                Email = registerDto.Email,
-                UserName = registerDto.UserName,
-                SecurityStamp = Guid.NewGuid().ToString(),
-            };
-
-            var createdUserResult = await _userManager.CreateAsync(newUser, registerDto.Password);
-
-            if (!createdUserResult.Succeeded)
-            {
-                var errorString = "User Creation Failed Because: ";
-                foreach (var error in createdUserResult.Errors)
-                {
-                    errorString += " # " + error.Description;
-                }
-                return BadRequest(errorString);
-            }
-
-            //Add a default USER ROLE to all users. 
-            await _userManager.AddToRoleAsync(newUser, StaticUserRoles.USER);
-
-            return Ok("User successfully created.");
+            return BadRequest(registerResults);
         }
 
         //Route for Login
@@ -96,47 +61,25 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            var user = await _userManager.FindByNameAsync(loginDto.UserName);
-            if (user is null)
-                return Unauthorized("Invalid Credentials");
+            var loginResult = await _authService.LoginAsync(loginDto);
 
-            var isPasswordCorrect = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-
-            if (!isPasswordCorrect)
-                return Unauthorized("Invalid Credentials");
-
-            var userRoles = await _userManager.GetRolesAsync(user);
-
-            var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim("JWTID", Guid.NewGuid().ToString())
-            };
-            foreach (var userRole in userRoles)
-            {
-                authClaims.Add(new Claim(ClaimTypes.Role, userRole));
-            }
-
-            var token = GenerateNewJsonWebToken(authClaims);
-            return Ok(token);
+            if (loginResult.IsSucceeded)
+                return Ok(loginResult);
+            return Unauthorized(loginResult);
         }
 
-        private string GenerateNewJsonWebToken(List<Claim> claims)
+
+
+        //Route for logging out 
+        [HttpPost]
+        [Route("logout")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        [Authorize]
+        public IActionResult Logout()
         {
-            var authSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
-
-            var tokenObject = new JwtSecurityToken(
-                issuer: _configuration["JWT:ValidIssuer"],
-                audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddHours(1),
-                claims: claims,
-                signingCredentials: new SigningCredentials(authSecret, SecurityAlgorithms.HmacSha256)
-            );
-
-            string token = new JwtSecurityTokenHandler().WriteToken(tokenObject);
-
-            return token;
+            return Ok("Successfully logged out.");
         }
 
         //Route for adding roles to users
@@ -147,15 +90,13 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> MakeAdmin([FromBody] UpdatePermissionDto updatePermissionDto)
         {
-            var user = await _userManager.FindByNameAsync(updatePermissionDto.UserName);
+           var operationResult = await _authService.MakeAdminAsync(updatePermissionDto);
 
-            if(user is null)
-         
-                return BadRequest("Invalid User name!!!");
-            await _userManager.AddToRoleAsync(user, StaticUserRoles.ADMIN);
+            if(operationResult.IsSucceeded)
+                return Ok(operationResult);
 
-            return Ok("User is now an Admin");
-            
+            return BadRequest(operationResult);
+
         }
 
 
@@ -167,15 +108,12 @@ namespace LantanaComfyAPI.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> MakeOwner([FromBody] UpdatePermissionDto updatePermissionDto)
         {
-            var user = await _userManager.FindByNameAsync(updatePermissionDto.UserName);
+            var operationResult = await _authService.MakeOwnerAsync(updatePermissionDto);
 
-            if (user is null)
+            if (operationResult.IsSucceeded)
+                return Ok(operationResult);
 
-                return BadRequest("Invalid User name!!!");
-            await _userManager.AddToRoleAsync(user, StaticUserRoles.OWNER);
-
-            return Ok("User is now an Owner");
-
+            return BadRequest(operationResult);
         }
     }
 }
