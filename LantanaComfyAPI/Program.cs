@@ -1,4 +1,5 @@
 using LantanaComfyAPI.Data;
+using LantanaComfyAPI.Dto.OtherEntities;
 using LantanaComfyAPI.Interfaces;
 using LantanaComfyAPI.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -28,7 +29,7 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 //Adding Identity 
 builder.Services
-    .AddIdentity<IdentityUser, IdentityRole>()
+    .AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<DataContext>()
     .AddDefaultTokenProviders();
 
