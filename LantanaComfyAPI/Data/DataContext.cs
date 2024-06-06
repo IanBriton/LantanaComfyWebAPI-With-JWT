@@ -1,10 +1,11 @@
-﻿using LantanaComfyAPI.Models;
+﻿using LantanaComfyAPI.Dto.OtherEntities;
+using LantanaComfyAPI.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace LantanaComfyAPI.Data
 {
-    public class DataContext : IdentityDbContext
+    public class DataContext : IdentityDbContext<ApplicationUser>
     {
         public DataContext(DbContextOptions<DataContext> options)
             : base(options) { }
