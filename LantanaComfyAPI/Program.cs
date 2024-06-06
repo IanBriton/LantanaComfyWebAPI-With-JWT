@@ -1,7 +1,9 @@
 using LantanaComfyAPI.Data;
 using LantanaComfyAPI.Dto.OtherEntities;
+using LantanaComfyAPI.Helper;
 using LantanaComfyAPI.Interfaces;
 using LantanaComfyAPI.Repository;
+using LantanaComfyAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +68,9 @@ builder.Services
 
         };
     });
+
+//Dependency Injection
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 //Pipeline
 
